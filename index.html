@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora y Visualizador de Pantallas LED</title>
+  <style>
+    :root {
+      --bg-main: #0b1120;
+      --bg-card: #131c31;
+      --bg-card-sub: #1a2642;
+      --bg-input: #0f172a;
+      --border-color: #223254;
+      --border-focus: #06b6d4;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-cyan: #06b6d4;
+      --accent-cyan-hover: #0891b2;
+      --accent-emerald: #10b981;
+      --accent-purple: #8b5cf6;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      line-height: 1.5;
+      padding: 1.25rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0284c7, #06b6d4);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-unit {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* Preset rápidas de escenario */
+    .quick-presets {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .quick-presets-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .btn-quick {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: all 0.2s ease;
+    }
+
+    .btn-quick:hover {
+      background: var(--border-color);
+      color: var(--text-main);
+      border-color: var(--accent-cyan);
+    }
+
+    /* Top Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: transparent;
+    }
+
+    .stat-card.cyan::before { background: var(--accent-cyan); }
+    .stat-card.emerald::before { background: var(--accent-emerald); }
+    .stat-card.purple::before { background: var(--accent-purple); }
+
+    .stat-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: #ffffff;
+      line-height: 1.1;
+    }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Main Grid Layout */
+    .app-layout {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1060px) {
+      .app-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Paneles */
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Modos de Operación */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      background: var(--bg-input);
+      padding: 0.35rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.65rem 0.5rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--bg-card-sub);
+      color: #ffffff;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2);
+    }
+
+    /* Ratios Presets */
+    .ratios-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 480px) {
+      .ratios-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .ratio-btn {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.6rem 0.35rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .ratio-btn:hover {
+      border-color: var(--accent-cyan);
+      background: #1e2c4d;
+    }
+
+    .ratio-btn.active {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.15);
+      box-shadow: 0 0 0 1px var(--accent-cyan);
+    }
+
+    .ratio-name {
+      font-weight: 800;
+      font-size: 0.95rem;
+      font-family: var(--font-mono);
+      color: #ffffff;
+    }
+
+    .ratio-desc {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    /* Inputs Personalizados */
+    .custom-ratio-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .custom-ratio-input {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1rem;
+      text-align: center;
+      padding: 0.4rem;
+      border-radius: 6px;
+      outline: none;
+      width: 100%;
+    }
+
+    .custom-ratio-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Campos de Entrada en Metros */
+    .input-field-block {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.85rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-field-block:focus-within {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 1px var(--accent-cyan);
+    }
+
+    .input-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .input-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .input-indicator {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      background: var(--bg-card-sub);
+      color: var(--text-muted);
+    }
+
+    .input-indicator.user {
+      background: rgba(6, 182, 212, 0.2);
+      color: var(--accent-cyan);
+    }
+
+    .input-indicator.auto {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-emerald);
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .input-numeric {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 1.85rem;
+      font-weight: 800;
+      width: 100%;
+      outline: none;
+    }
+
+    .unit-tag {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .input-foot {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: 0.25rem;
+    }
+
+    /* Simulador LED */
+    .sim-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 540px;
+    }
+
+    .sim-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .sim-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sim-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-action {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      background: var(--border-color);
+      color: #ffffff;
+      border-color: var(--accent-cyan);
+    }
+
+    /* Lienzo de Simulación */
+    .stage-canvas {
+      flex: 1;
+      min-height: 420px;
+      background: #070b14;
+      border: 1px dashed var(--border-color);
+      border-radius: 14px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 4rem;
+      overflow: hidden;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Pantalla LED simulada */
+    .led-screen-box {
+      border: 2px solid var(--accent-cyan);
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(16, 185, 129, 0.08));
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.2), inset 0 0 20px rgba(6, 182, 212, 0.1);
+      transition: width 0.25s ease, height 0.25s ease;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .led-grid-pattern {
+      position: absolute;
+      inset: 0;
+      background-size: 30px 30px;
+      background-image: 
+        linear-gradient(to right, rgba(6, 182, 212, 0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(6, 182, 212, 0.15) 1px, transparent 1px);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .led-info-center {
+      position: relative;
+      z-index: 2;
+      background: rgba(11, 17, 32, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      padding: 0.85rem 1.25rem;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+
+    .screen-ratio-tag {
+      font-size: 1.35rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+    }
+
+    .screen-dim-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: var(--font-mono);
+      margin-top: 0.2rem;
+    }
+
+    .screen-area-tag {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* Cotas de Medida */
+    .dim-cota-w {
+      position: absolute;
+      top: -36px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cota-line-w {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-cyan);
+      opacity: 0.7;
+    }
+
+    .cota-badge {
+      position: relative;
+      z-index: 2;
+      background: #0b1120;
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+    }
+
+    .dim-cota-h {
+      position: absolute;
+      right: -52px;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cota-line-h {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--accent-emerald);
+      opacity: 0.7;
+    }
+
+    .cota-badge-h {
+      position: relative;
+      z-index: 2;
+      background: #0b1120;
+      border: 1px solid var(--accent-emerald);
+      color: var(--accent-emerald);
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* Módulos LED Hardware */
+    .cabinet-grid-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .cab-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.5rem 0.25rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cab-btn.active {
+      border-color: #f59e0b;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .cabinet-summary {
+      background: var(--bg-input);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .cab-count {
+      font-size: 1.25rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: #ffffff;
+    }
+
+    /* Notificación de Copiado */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #10b981;
+      color: #ffffff;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: none;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      z-index: 999;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <!-- Icono SVG de Pantalla -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">
+            Calculadora de Pantallas LED
+            <span class="badge-unit">Metros (m)</span>
+          </h1>
+          <p class="brand-sub">Cálculo bidireccional en metros, detección de aspecto y estimación de gabinetes</p>
+        </div>
+      </div>
+
+      <!-- Presets de escenarios rápidos -->
+      <div class="quick-presets">
+        <span class="quick-presets-label">Escenarios:</span>
+        <button class="btn-quick" onclick="applyQuickScreen(16, 10)">16 × 10 m</button>
+        <button class="btn-quick" onclick="applyQuickScreen(16, 9)">16 × 9 m</button>
+        <button class="btn-quick" onclick="applyQuickScreen(8, 4.5)">8 × 4.5 m</button>
+        <button class="btn-quick" onclick="applyQuickScreen(12, 4)">12 × 4 m</button>
+      </div>
+    </header>
+
+    <!-- Barra de Tarjetas Estadísticas -->
+    <div class="stats-grid">
+      <div class="stat-card cyan">
+        <div class="stat-title">Relación Calculada</div>
+        <div class="stat-value" id="card-ratio-exact">16:10</div>
+        <div class="stat-sub" id="card-ratio-decimal">1.600 : 1</div>
+      </div>
+
+      <div class="stat-card emerald">
+        <div class="stat-title">Área Superficie</div>
+        <div class="stat-value" id="card-area">160.00 m²</div>
+        <div class="stat-sub" id="card-perim">Perímetro: 52.00 m</div>
+      </div>
+
+      <div class="stat-card purple">
+        <div class="stat-title">Diagonal Física</div>
+        <div class="stat-value" id="card-diag-m">18.87 m</div>
+        <div class="stat-sub" id="card-diag-inch">~742.8 pulgadas</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-title">Orientación</div>
+        <div class="stat-value" id="card-orient" style="font-size:1.35rem; color:#38bdf8;">Horizontal</div>
+        <div class="stat-sub" id="card-orient-sub">Landscape Widescreen</div>
+      </div>
+    </div>
+
+    <!-- Layout Principal -->
+    <div class="app-layout">
+      <!-- Columna Izquierda: Parámetros de Control -->
+      <div class="controls-col">
+
+        <!-- Comportamiento del Cálculo -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              Comportamiento
+            </span>
+          </div>
+
+          <div class="mode-selector">
+            <button class="mode-btn" id="btn-mode-locked" onclick="setMode('locked')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              Ratio Bloqueado
+            </button>
+            <button class="mode-btn active" id="btn-mode-free" onclick="setMode('free')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+              </svg>
+              Detectar Ratio (Libre)
+            </button>
+          </div>
+          <p id="mode-desc-text" style="font-size:0.75rem; color:var(--text-muted); margin-top:0.6rem;">
+            Digita <strong>Ancho</strong> y <strong>Alto</strong> independientemente. El sistema calculará el ratio exacto.
+          </p>
+        </div>
+
+        <!-- Ratios de Aspecto -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              </svg>
+              Relaciones Estándar
+            </span>
+            <span id="label-ratio-val" style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent-cyan); font-weight:700;">1.60 : 1</span>
+          </div>
+
+          <div class="ratios-grid">
+            <div class="ratio-btn" data-ratio="16:9" onclick="selectPresetRatio(16, 9, this)">
+              <div class="ratio-name">16:9</div>
+              <div class="ratio-desc">Widescreen</div>
+            </div>
+            <div class="ratio-btn active" data-ratio="16:10" onclick="selectPresetRatio(16, 10, this)">
+              <div class="ratio-name">16:10</div>
+              <div class="ratio-desc">PC / Pantalla</div>
+            </div>
+            <div class="ratio-btn" data-ratio="4:3" onclick="selectPresetRatio(4, 3, this)">
+              <div class="ratio-name">4:3</div>
+              <div class="ratio-desc">Clásico AV</div>
+            </div>
+            <div class="ratio-btn" data-ratio="21:9" onclick="selectPresetRatio(21, 9, this)">
+              <div class="ratio-name">21:9</div>
+              <div class="ratio-desc">Ultrawide</div>
+            </div>
+            <div class="ratio-btn" data-ratio="32:9" onclick="selectPresetRatio(32, 9, this)">
+              <div class="ratio-name">32:9</div>
+              <div class="ratio-desc">Super Ultra</div>
+            </div>
+            <div class="ratio-btn" data-ratio="9:16" onclick="selectPresetRatio(9, 16, this)">
+              <div class="ratio-name">9:16</div>
+              <div class="ratio-desc">Vertical / Totem</div>
+            </div>
+            <div class="ratio-btn" data-ratio="1:1" onclick="selectPresetRatio(1, 1, this)">
+              <div class="ratio-name">1:1</div>
+              <div class="ratio-desc">Cuadrado</div>
+            </div>
+            <div class="ratio-btn" data-ratio="custom">
+              <div class="ratio-name" id="tag-custom-name">X:Y</div>
+              <div class="ratio-desc">Personalizado</div>
+            </div>
+          </div>
+
+          <div class="custom-ratio-row">
+            <input type="number" id="ratio-x" class="custom-ratio-input" value="16" min="1" step="any" oninput="onCustomRatioChanged()">
+            <span style="font-weight:800; color:var(--text-muted); font-size:1.1rem;">:</span>
+            <input type="number" id="ratio-y" class="custom-ratio-input" value="10" min="1" step="any" oninput="onCustomRatioChanged()">
+          </div>
+        </div>
+
+        <!-- Dimensiones en Metros -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 6H3"></path><path d="M21 12H3"></path><path d="M21 18H3"></path>
+              </svg>
+              Dimensiones (Metros)
+            </span>
+          </div>
+
+          <!-- Ancho -->
+          <div class="input-field-block">
+            <div class="input-top">
+              <span class="input-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="18 8 22 12 18 16"></polyline>
+                  <polyline points="6 8 2 12 6 16"></polyline>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                </svg>
+                Ancho de Pantalla
+              </span>
+              <span class="input-indicator user" id="tag-badge-w">Digitado</span>
+            </div>
+            <div class="input-row">
+              <input type="number" id="input-w" class="input-numeric" value="16" step="0.01" min="0.01" oninput="handleInputWidth(this.value)">
+              <span class="unit-tag">m</span>
+            </div>
+            <div class="input-foot" id="sub-dim-w">1600.0 cm | 16000 mm</div>
+          </div>
+
+          <!-- Alto -->
+          <div class="input-field-block">
+            <div class="input-top">
+              <span class="input-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="8 18 12 22 16 18"></polyline>
+                  <polyline points="8 6 12 2 16 6"></polyline>
+                  <line x1="12" y1="2" x2="12" y2="22"></line>
+                </svg>
+                Alto de Pantalla
+              </span>
+              <span class="input-indicator user" id="tag-badge-h">Digitado</span>
+            </div>
+            <div class="input-row">
+              <input type="number" id="input-h" class="input-numeric" value="10" step="0.01" min="0.01" oninput="handleInputHeight(this.value)">
+              <span class="unit-tag">m</span>
+            </div>
+            <div class="input-foot" id="sub-dim-h">1000.0 cm | 10000 mm</div>
+          </div>
+        </div>
+
+        <!-- Módulos / Gabinetes LED -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              Estimación de Gabinetes LED
+            </span>
+          </div>
+
+          <div class="cabinet-grid-options">
+            <div class="cab-btn active" onclick="selectCabinet(0.5, 0.5, this)">50 × 50 cm</div>
+            <div class="cab-btn" onclick="selectCabinet(0.5, 1.0, this)">50 × 100 cm</div>
+            <div class="cab-btn" onclick="selectCabinet(0.5, 0.25, this)">50 × 25 cm</div>
+          </div>
+
+          <div class="cabinet-summary">
+            <div>
+              <div style="color:var(--text-muted); font-size:0.75rem;">Distribución requerida:</div>
+              <div id="cab-matrix" style="font-weight:700; color:#ffffff; font-family:var(--font-mono); margin-top:2px;">32 col × 20 filas</div>
+              <div id="cab-fit-status" style="font-size:0.7rem; color:#10b981; margin-top:2px;">✓ Encaje exacto</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:var(--text-muted); font-size:0.75rem;">Total Gabinetes:</div>
+              <div class="cab-count" id="cab-total">640</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Columna Derecha: Visualizador / Simulador Proporcional -->
+      <div class="sim-col">
+        <div class="sim-card">
+          <div class="sim-top-bar">
+            <div class="sim-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Simulación de Escala Proporcional
+            </div>
+
+            <div class="sim-actions">
+              <button class="btn-action" onclick="copyTechnicalSheet()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copiar Ficha Técnica
+              </button>
+            </div>
+          </div>
+
+          <!-- Escenario -->
+          <div class="stage-canvas" id="stage-area">
+            <div class="led-screen-box" id="led-screen">
+              <div class="led-grid-pattern"></div>
+
+              <!-- Cota Ancho (Horizontal) -->
+              <div class="dim-cota-w">
+                <div class="cota-line-w"></div>
+                <div class="cota-badge" id="cota-badge-w">16.00 m</div>
+              </div>
+
+              <!-- Cota Alto (Vertical) -->
+              <div class="dim-cota-h">
+                <div class="cota-line-h"></div>
+                <div class="cota-badge-h" id="cota-badge-h">10.00 m</div>
+              </div>
+
+              <!-- Información Flotante en el Centro -->
+              <div class="led-info-center">
+                <div class="screen-ratio-tag" id="center-ratio">16:10</div>
+                <div class="screen-dim-tag" id="center-dims">16.00 m × 10.00 m</div>
+                <div class="screen-area-tag" id="center-area">160.00 m² de superficie</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast de Notificación -->
+  <div class="toast" id="toast-msg">¡Ficha técnica copiada al portapapeles!</div>
+
+  <script>
+    // ESTADO PRINCIPAL DE LA APLICACIÓN
+    const state = {
+      widthM: 16.00,
+      heightM: 10.00,
+      ratioX: 16,
+      ratioY: 10,
+      mode: 'free',          // 'locked' (relación bloqueada) | 'free' (detectar libremente)
+      lastEdited: 'w',       // 'w' | 'h'
+      cabinetW: 0.50,        // metros (500mm)
+      cabinetH: 0.50         // metros (500mm)
+    };
+
+    // ELEMENTOS DOM
+    const inputW = document.getElementById('input-w');
+    const inputH = document.getElementById('input-h');
+    const ratioXInput = document.getElementById('ratio-x');
+    const ratioYInput = document.getElementById('ratio-y');
+
+    const cardRatioExact = document.getElementById('card-ratio-exact');
+    const cardRatioDecimal = document.getElementById('card-ratio-decimal');
+    const cardArea = document.getElementById('card-area');
+    const cardPerim = document.getElementById('card-perim');
+    const cardDiagM = document.getElementById('card-diag-m');
+    const cardDiagInch = document.getElementById('card-diag-inch');
+    const cardOrient = document.getElementById('card-orient');
+    const cardOrientSub = document.getElementById('card-orient-sub');
+
+    const subDimW = document.getElementById('sub-dim-w');
+    const subDimH = document.getElementById('sub-dim-h');
+    const tagBadgeW = document.getElementById('tag-badge-w');
+    const tagBadgeH = document.getElementById('tag-badge-h');
+    const labelRatioVal = document.getElementById('label-ratio-val');
+
+    const ledScreen = document.getElementById('led-screen');
+    const stageArea = document.getElementById('stage-area');
+    const cotaBadgeW = document.getElementById('cota-badge-w');
+    const cotaBadgeH = document.getElementById('cota-badge-h');
+    const centerRatio = document.getElementById('center-ratio');
+    const centerDims = document.getElementById('center-dims');
+    const centerArea = document.getElementById('center-area');
+
+    const cabMatrix = document.getElementById('cab-matrix');
+    const cabTotal = document.getElementById('cab-total');
+    const cabFitStatus = document.getElementById('cab-fit-status');
+
+    // MÁXIMO COMÚN DIVISOR
+    function gcd(a, b) {
+      a = Math.round(a);
+      b = Math.round(b);
+      return b === 0 ? a : gcd(b, a % b);
+    }
+
+    // REDUCCIÓN DE ASPECT RATIO EXACTO CON TOLERANCIA
+    function getStandardRatio(w, h) {
+      if (w <= 0 || h <= 0) return { name: '--', x: 1, y: 1, decimal: 1 };
+      const val = w / h;
+
+      const standards = [
+        { name: '16:9', x: 16, y: 9, val: 16/9 },
+        { name: '16:10', x: 16, y: 10, val: 16/10 },
+        { name: '4:3', x: 4, y: 3, val: 4/3 },
+        { name: '21:9', x: 21, y: 9, val: 21/9 },
+        { name: '32:9', x: 32, y: 9, val: 32/9 },
+        { name: '9:16', x: 9, y: 16, val: 9/16 },
+        { name: '1:1', x: 1, y: 1, val: 1.0 },
+        { name: '2:1', x: 2, y: 1, val: 2.0 },
+        { name: '3:1', x: 3, y: 1, val: 3.0 },
+        { name: '3:2', x: 3, y: 2, val: 1.5 },
+        { name: '5:4', x: 5, y: 4, val: 1.25 }
+      ];
+
+      for (const std of standards) {
+        if (Math.abs(val - std.val) < 0.015) {
+          return { name: std.name, x: std.x, y: std.y, decimal: val };
+        }
+      }
+
+      // Si no es un estándar exacto, reducir con enteros
+      const factor = 1000;
+      const g = gcd(w * factor, h * factor);
+      let rx = Math.round((w * factor) / g);
+      let ry = Math.round((h * factor) / g);
+
+      if (rx > 100 || ry > 100) {
+        rx = +(val).toFixed(2);
+        ry = 1;
+      }
+      return { name: `${rx}:${ry}`, x: rx, y: ry, decimal: val };
+    }
+
+    // CAMBIO DE MODO
+    function setMode(newMode) {
+      state.mode = newMode;
+      const btnLocked = document.getElementById('btn-mode-locked');
+      const btnFree = document.getElementById('btn-mode-free');
+      const desc = document.getElementById('mode-desc-text');
+
+      if (newMode === 'locked') {
+        btnLocked.classList.add('active');
+        btnFree.classList.remove('active');
+        desc.innerHTML = 'Relación fija. Al editar <strong>Ancho</strong> se calcula el <strong>Alto</strong> (y viceversa).';
+        recalcFromRatio();
+      } else {
+        btnFree.classList.add('active');
+        btnLocked.classList.remove('active');
+        desc.innerHTML = 'Modo Libre. Digita <strong>Ancho</strong> y <strong>Alto</strong> independientemente y detecta su relación.';
+        tagBadgeW.textContent = 'Digitado';
+        tagBadgeW.className = 'input-indicator user';
+        tagBadgeH.textContent = 'Digitado';
+        tagBadgeH.className = 'input-indicator user';
+        recalcAspectDetection();
+      }
+    }
+
+    // ENTRADA: ANCHO
+    function handleInputWidth(val) {
+      const w = parseFloat(val);
+      if (isNaN(w) || w <= 0) return;
+      state.widthM = w;
+      state.lastEdited = 'w';
+
+      if (state.mode === 'locked') {
+        const rX = parseFloat(state.ratioX);
+        const rY = parseFloat(state.ratioY);
+        if (rX > 0 && rY > 0) {
+          state.heightM = +(w * (rY / rX)).toFixed(3);
+          inputH.value = state.heightM;
+          tagBadgeW.textContent = 'Digitado';
+          tagBadgeW.className = 'input-indicator user';
+          tagBadgeH.textContent = 'Calculado';
+          tagBadgeH.className = 'input-indicator auto';
+        }
+        updateFullUI();
+      } else {
+        recalcAspectDetection();
+      }
+    }
+
+    // ENTRADA: ALTO
+    function handleInputHeight(val) {
+      const h = parseFloat(val);
+      if (isNaN(h) || h <= 0) return;
+      state.heightM = h;
+      state.lastEdited = 'h';
+
+      if (state.mode === 'locked') {
+        const rX = parseFloat(state.ratioX);
+        const rY = parseFloat(state.ratioY);
+        if (rX > 0 && rY > 0) {
+          state.widthM = +(h * (rX / rY)).toFixed(3);
+          inputW.value = state.widthM;
+          tagBadgeH.textContent = 'Digitado';
+          tagBadgeH.className = 'input-indicator user';
+          tagBadgeW.textContent = 'Calculado';
+          tagBadgeW.className = 'input-indicator auto';
+        }
+        updateFullUI();
+      } else {
+        recalcAspectDetection();
+      }
+    }
+
+    // MODO DETECCIÓN: ANCHO + ALTO -> RATIO
+    function recalcAspectDetection() {
+      const res = getStandardRatio(state.widthM, state.heightM);
+      state.ratioX = res.x;
+      state.ratioY = res.y;
+
+      ratioXInput.value = res.x;
+      ratioYInput.value = res.y;
+
+      // Resaltar preset si coincide
+      highlightRatioButton(res.name);
+      updateFullUI(res.name);
+    }
+
+    // MODO BLOQUEADO: RATIO -> DIMENSIONES
+    function recalcFromRatio() {
+      const rx = parseFloat(state.ratioX);
+      const ry = parseFloat(state.ratioY);
+      if (rx <= 0 || ry <= 0) return;
+
+      if (state.lastEdited === 'h') {
+        state.widthM = +(state.heightM * (rx / ry)).toFixed(3);
+        inputW.value = state.widthM;
+        tagBadgeW.textContent = 'Calculado';
+        tagBadgeW.className = 'input-indicator auto';
+        tagBadgeH.textContent = 'Base';
+        tagBadgeH.className = 'input-indicator user';
+      } else {
+        state.heightM = +(state.widthM * (ry / rx)).toFixed(3);
+        inputH.value = state.heightM;
+        tagBadgeH.textContent = 'Calculado';
+        tagBadgeH.className = 'input-indicator auto';
+        tagBadgeW.textContent = 'Base';
+        tagBadgeW.className = 'input-indicator user';
+      }
+      updateFullUI();
+    }
+
+    // SELECCIÓN DE PRESET DE RELACIÓN
+    function selectPresetRatio(x, y, btnElement) {
+      state.ratioX = x;
+      state.ratioY = y;
+      ratioXInput.value = x;
+      ratioYInput.value = y;
+
+      document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+
+      if (state.mode === 'free') {
+        setMode('locked');
+      } else {
+        recalcFromRatio();
+      }
+    }
+
+    function onCustomRatioChanged() {
+      const x = parseFloat(ratioXInput.value);
+      const y = parseFloat(ratioYInput.value);
+      if (x > 0 && y > 0) {
+        state.ratioX = x;
+        state.ratioY = y;
+        document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+        const customBtn = document.querySelector('[data-ratio="custom"]');
+        if (customBtn) customBtn.classList.add('active');
+        document.getElementById('tag-custom-name').textContent = `${x}:${y}`;
+
+        if (state.mode === 'locked') {
+          recalcFromRatio();
+        } else {
+          setMode('locked');
+        }
+      }
+    }
+
+    function highlightRatioButton(ratioName) {
+      document.querySelectorAll('.ratio-btn').forEach(btn => {
+        const r = btn.getAttribute('data-ratio');
+        if (r === ratioName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function applyQuickScreen(w, h) {
+      state.widthM = w;
+      state.heightM = h;
+      inputW.value = w;
+      inputH.value = h;
+      setMode('free');
+    }
+
+    // GABINETES LED
+    function selectCabinet(w, h, btn) {
+      state.cabinetW = w;
+      state.cabinetH = h;
+      document.querySelectorAll('.cab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      calculateCabinets();
+    }
+
+    function calculateCabinets() {
+      const cols = Math.ceil(state.widthM / state.cabinetW);
+      const rows = Math.ceil(state.heightM / state.cabinetH);
+      const total = cols * rows;
+
+      const exactW = Math.abs((cols * state.cabinetW) - state.widthM) < 0.001;
+      const exactH = Math.abs((rows * state.cabinetH) - state.heightM) < 0.001;
+
+      cabMatrix.textContent = `${cols} cols × ${rows} filas`;
+      cabTotal.textContent = total;
+
+      if (exactW && exactH) {
+        cabFitStatus.textContent = '✓ Encaje exacto modular';
+        cabFitStatus.style.color = '#10b981';
+      } else {
+        const coverW = (cols * state.cabinetW).toFixed(2);
+        const coverH = (rows * state.cabinetH).toFixed(2);
+        cabFitStatus.textContent = `Ajuste modular: ${coverW}m × ${coverH}m`;
+        cabFitStatus.style.color = '#f59e0b';
+      }
+    }
+
+    // ACTUALIZACIÓN DE TODA LA INTERFAZ
+    function updateFullUI(forcedRatioName = null) {
+      const w = state.widthM;
+      const h = state.heightM;
+
+      // Conversión cm / mm
+      subDimW.textContent = `${(w * 100).toFixed(1)} cm | ${(w * 1000).toFixed(0)} mm`;
+      subDimH.textContent = `${(h * 100).toFixed(1)} cm | ${(h * 1000).toFixed(0)} mm`;
+
+      // Relación y decimal
+      const decimalVal = (w / h);
+      const activeName = forcedRatioName || (state.ratioX && state.ratioY ? `${state.ratioX}:${state.ratioY}` : `${decimalVal.toFixed(2)}:1`);
+
+      cardRatioExact.textContent = activeName;
+      cardRatioDecimal.textContent = `${decimalVal.toFixed(3)} : 1`;
+      labelRatioVal.textContent = `${decimalVal.toFixed(2)} : 1`;
+
+      // Métricas de Superficie
+      const area = w * h;
+      const perim = 2 * (w + h);
+      const diagM = Math.sqrt((w * w) + (h * h));
+      const diagInches = diagM * 39.3701;
+
+      cardArea.textContent = `${area.toFixed(2)} m²`;
+      cardPerim.textContent = `Perímetro: ${perim.toFixed(2)} m`;
+      cardDiagM.textContent = `${diagM.toFixed(2)} m`;
+      cardDiagInch.textContent = `~${diagInches.toFixed(1)}" pulgadas`;
+
+      // Orientación
+      if (decimalVal > 1.05) {
+        cardOrient.textContent = 'Horizontal';
+        cardOrient.style.color = '#38bdf8';
+        cardOrientSub.textContent = decimalVal > 2.0 ? 'Ultrawide Panorámico' : 'Landscape Estándar';
+      } else if (decimalVal < 0.95) {
+        cardOrient.textContent = 'Vertical';
+        cardOrient.style.color = '#ec4899';
+        cardOrientSub.textContent = 'Totem / Banner Vertical';
+      } else {
+        cardOrient.textContent = 'Cuadrado';
+        cardOrient.style.color = '#a855f7';
+        cardOrientSub.textContent = 'Aspect Ratio 1:1';
+      }
+
+      // Cotas y badges del Simulador
+      cotaBadgeW.textContent = `${w.toFixed(2)} m`;
+      cotaBadgeH.textContent = `${h.toFixed(2)} m`;
+      centerRatio.textContent = activeName;
+      centerDims.textContent = `${w.toFixed(2)} m × ${h.toFixed(2)} m`;
+      centerArea.textContent = `${area.toFixed(2)} m² de superficie`;
+
+      // Dimensionamiento del lienzo proporcional
+      renderSimulatedScreen(w, h);
+
+      // Gabinetes
+      calculateCabinets();
+    }
+
+    // DIBUJO PROPORCIONAL DE LA PANTALLA EN EL CONTENEDOR
+    function renderSimulatedScreen(w, h) {
+      if (!stageArea || !ledScreen) return;
+      const availableW = stageArea.clientWidth - 120;
+      const availableH = stageArea.clientHeight - 100;
+
+      if (availableW <= 0 || availableH <= 0) return;
+
+      const screenAspect = w / h;
+      const containerAspect = availableW / availableH;
+
+      let drawW, drawH;
+
+      if (screenAspect > containerAspect) {
+        drawW = availableW;
+        drawH = availableW / screenAspect;
+      } else {
+        drawH = availableH;
+        drawW = availableH * screenAspect;
+      }
+
+      ledScreen.style.width = `${Math.max(120, Math.round(drawW))}px`;
+      ledScreen.style.height = `${Math.max(90, Math.round(drawH))}px`;
+    }
+
+    // COPIAR FICHA TÉCNICA
+    function copyTechnicalSheet() {
+      const w = state.widthM.toFixed(2);
+      const h = state.heightM.toFixed(2);
+      const area = (state.widthM * state.heightM).toFixed(2);
+      const diagM = Math.sqrt((state.widthM**2) + (state.heightM**2)).toFixed(2);
+      const diagInches = (diagM * 39.3701).toFixed(0);
+      const ratio = cardRatioExact.textContent;
+      const ratioDec = cardRatioDecimal.textContent;
+      const matrix = cabMatrix.textContent;
+      const totalCab = cabTotal.textContent;
+
+      const report = `FICHA TÉCNICA DE PANTALLA LED
+======================================
+• Dimensiones: ${w} m (Ancho) × ${h} m (Alto)
+• Relación de Aspecto: ${ratio} (${ratioDec})
+• Área Total: ${area} m²
+• Diagonal: ${diagM} m (~${diagInches}")
+• Módulos LED (${state.cabinetW * 100}x${state.cabinetH * 100} cm):
+  - Configuración: ${matrix}
+  - Total Gabinetes: ${totalCab} unidades
+======================================
+Generado con LED Dimension Studio`;
+
+      const textArea = document.createElement("textarea");
+      textArea.value = report;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        const toast = document.getElementById('toast-msg');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2600);
+      } catch (err) {
+        console.error('Error al copiar', err);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // REAJUSTE DE VENTANA
+    window.addEventListener('resize', () => {
+      renderSimulatedScreen(state.widthM, state.heightM);
+    });
+
+    // INICIALIZACIÓN INMEDIATA
+    window.onload = function() {
+      applyQuickScreen(16, 10);
+    };
+  </script>
+</body>
+</html>
